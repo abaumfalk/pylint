@@ -1,5 +1,6 @@
 # pylint: disable=missing-docstring,too-few-public-methods,bare-except,broad-except, unused-private-member
 # pylint: disable=using-constant-test,expression-not-assigned, assigning-non-slot, unused-variable,pointless-statement, wrong-import-order, wrong-import-position,import-outside-toplevel
+import random
 
 class Provider:
     """provide some attributes and method"""
@@ -86,6 +87,17 @@ print(Client().set_later.lower())
 print(Mixin().nanana())
 print(Getattr().nananan())
 print(Getattribute().batman())
+
+class Noattr:
+    pass
+
+def ambiguous():
+    # returns random type, one of which has dunder gettattr while the other does not
+    if random.randint(0, 1) > 0:
+        return Getattr()
+    return Noattr()
+
+print(ambiguous().someattr)
 
 try:
     Client().missing_method()
