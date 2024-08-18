@@ -468,8 +468,6 @@ def _emit_no_member(
             # Renamed in Python 3.10 to `EnumType`
             if metaclass and metaclass.qname() in {"enum.EnumMeta", "enum.EnumType"}:
                 return not _enum_has_attribute(owner, node)
-        if owner.has_dynamic_getattr():
-            return False
         if not has_known_bases(owner):
             return False
 
@@ -1106,6 +1104,18 @@ accessed. Python regular expressions are accepted.",
             # make sure that we won't emit a false positive, we just stop
             # whenever the inference returns an opaque inference object.
             return
+
+        # We need to omit no_member checks if one of the inferred results has dynamic getattr. To achieve this, we
+        # determine presence of dynamic getattr beforehand.
+        dynamic_getattr = False
+        for owner in non_opaque_inference_results:
+            if (
+                isinstance(owner, (astroid.Instance, nodes.ClassDef))
+                and owner.has_dynamic_getattr()
+            ):
+                dynamic_getattr = True
+                break
+
         for owner in non_opaque_inference_results:
             name = getattr(owner, "name", None)
             if _is_owner_ignored(
@@ -1142,6 +1152,8 @@ accessed. Python regular expressions are accepted.",
                 # but we continue to the next values which doesn't have the
                 # attribute, then we'll have a false positive.
                 # So call this only after the call has been made.
+                if dynamic_getattr:
+                    continue
                 if not _emit_no_member(
                     node,
                     owner,
