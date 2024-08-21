@@ -462,8 +462,6 @@ def _emit_no_member(
         # invoked at this point.
         if _is_enum(owner):
             return not _enum_has_attribute(owner, node)
-        if owner.has_dynamic_getattr():
-            return False
         if not has_known_bases(owner):
             return False
 
@@ -1114,6 +1112,13 @@ accessed. Python regular expressions are accepted.",
             # make sure that we won't emit a false positive, we just stop
             # whenever the inference returns an opaque inference object.
             return
+
+        has_dynamic_getarr = False
+        for owner in non_opaque_inference_results:
+            if isinstance(owner, (astroid.Instance, nodes.ClassDef)) and not _is_enum(owner) and owner.has_dynamic_getattr():
+                has_dynamic_getarr = True
+                break
+
         for owner in non_opaque_inference_results:
             name = getattr(owner, "name", None)
             if _is_owner_ignored(
@@ -1150,7 +1155,7 @@ accessed. Python regular expressions are accepted.",
                 # but we continue to the next values which doesn't have the
                 # attribute, then we'll have a false positive.
                 # So call this only after the call has been made.
-                if not _emit_no_member(
+                if has_dynamic_getarr or not _emit_no_member(
                     node,
                     owner,
                     name,
